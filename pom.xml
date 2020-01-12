@@ -12,6 +12,7 @@
         <module>mpush-base</module>
         <module>mpush-core</module>
         <module>mpush-client</module>
+        <module>mpush-server</module>
     </modules>
 
     <scm>
