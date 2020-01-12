@@ -1,0 +1,82 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>cn.mpush</groupId>
+    <artifactId>mpush</artifactId>
+    <packaging>pom</packaging>
+    <version>1.0-SNAPSHOT</version>
+    <name>Maven Quick Start Archetype</name>
+    <url>http://maven.apache.org</url>
+
+    <modules>
+        <module>mpush-base</module>
+        <module>mpush-core</module>
+        <module>mpush-client</module>
+    </modules>
+
+    <scm>
+        <url>https://github.com/animaloz/mpush.git</url>
+        <connection>scm:git:git@github.com:animaloz/mpush.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com:animaloz/mpush.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
+    <properties>
+        <mpush.version>1.0-SNAPSHOT</mpush.version>
+        <netty.version>4.1.44.Final</netty.version>
+        <junit.version>3.8.1</junit.version>
+        <lombok.version>1.18.10</lombok.version>
+        <fastjson.version>1.2.62</fastjson.version>
+        <commons4.version>4.4</commons4.version>
+        <commons3.version>3.9</commons3.version>
+        <cglib.version>3.3.0</cglib.version>
+        <http.clent.version>4.5.10</http.clent.version>
+        <lang.version>3.9</lang.version>
+    </properties>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-all</artifactId>
+                <version>${netty.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>${junit.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>fastjson</artifactId>
+                <version>${fastjson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-collections4</artifactId>
+                <version>${commons4.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cglib</groupId>
+                <artifactId>cglib</artifactId>
+                <version>${cglib.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commons3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>${http.clent.version}</version>
+            </dependency>
+        </dependencies>
+
+    </dependencyManagement>
+</project>
