@@ -1,6 +1,3 @@
 # Created by .ignore support plugin (hsz.mobi)
+/**/target/
 
-/mpush-base/target/
-/mpush-client/target/
-/mpush-core/target/
-/mpush-server/target/
