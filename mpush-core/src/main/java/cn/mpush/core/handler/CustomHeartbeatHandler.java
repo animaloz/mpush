@@ -3,28 +3,23 @@ package cn.mpush.core.handler;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
+import io.netty.util.CharsetUtil;
 
-public class CustomHeartbeatHandler extends SimpleChannelInboundHandler<ByteBuf> {
-    public static final byte PING_MSG = 1;
-    public static final byte PONG_MSG = 2;
-    public static final byte CUSTOM_MSG = 3;
+import java.nio.charset.Charset;
+
+public abstract class CustomHeartbeatHandler extends SimpleChannelInboundHandler<ByteBuf> {
+    protected static final byte PING_MSG = 1;
+    protected static final byte PONG_MSG = 2;
+    protected static final byte CUSTOM_MSG = 3;
     protected String name;
+    protected int msgLength;
     private int heartbeatCount = 0;
 
-    public CustomHeartbeatHandler(String name) {
+    public CustomHeartbeatHandler(String name, int msgLength) {
         this.name = name;
-    }
-
-    @Override
-    protected void channelRead0(ChannelHandlerContext context, ByteBuf byteBuf) throws Exception {
-        if (byteBuf.getByte(4) == PING_MSG) {
-            sendPongMsg(context);
-        } else if (byteBuf.getByte(4) == PONG_MSG){
-            System.out.println(name + " get pong msg from " + context.channel().remoteAddress());
-        } else {
-//            handleData(context, byteBuf);
-        }
+        this.msgLength = msgLength;
     }
 
     protected void sendPingMsg(ChannelHandlerContext context) {
@@ -37,7 +32,7 @@ public class CustomHeartbeatHandler extends SimpleChannelInboundHandler<ByteBuf>
         System.out.println(name + " sent ping msg to " + context.channel().remoteAddress() + ", count: " + heartbeatCount);
     }
 
-    private void sendPongMsg(ChannelHandlerContext context) {
+    protected void sendPongMsg(ChannelHandlerContext context) {
         ByteBuf buf = context.alloc().buffer(5);
         buf.writeInt(5);
         buf.writeByte(PONG_MSG);
@@ -51,18 +46,8 @@ public class CustomHeartbeatHandler extends SimpleChannelInboundHandler<ByteBuf>
         // IdleStateHandler 所产生的 IdleStateEvent 的处理逻辑.
         if (evt instanceof IdleStateEvent) {
             IdleStateEvent e = (IdleStateEvent) evt;
-            switch (e.state()) {
-                case READER_IDLE:
-                    handleReaderIdle(ctx);
-                    break;
-                case WRITER_IDLE:
-                    handleWriterIdle(ctx);
-                    break;
-                case ALL_IDLE:
-                    handleAllIdle(ctx);
-                    break;
-                default:
-                    break;
+            if (e.state() == IdleState.WRITER_IDLE) {
+                handleWriterIdle(ctx);
             }
         }
     }
@@ -77,15 +62,24 @@ public class CustomHeartbeatHandler extends SimpleChannelInboundHandler<ByteBuf>
         System.err.println("---" + ctx.channel().remoteAddress() + " is inactive---");
     }
 
-    protected void handleReaderIdle(ChannelHandlerContext ctx) {
-        System.err.println("---READER_IDLE---");
+    private void handleWriterIdle(ChannelHandlerContext ctx) {
+        System.out.println("---AUTO_WRITER_IDLE---");
+        sendPingMsg(ctx);
     }
 
-    protected void handleWriterIdle(ChannelHandlerContext ctx) {
-        System.err.println("---WRITER_IDLE---");
+    @Override
+    protected void channelRead0(ChannelHandlerContext context, ByteBuf byteBuf) throws Exception {
+        byte msgType = byteBuf.getByte(msgLength);
+        if (msgType == PING_MSG) {
+//            不发送消息，进行ping pong成功时间更新
+            getPingMsg(context, byteBuf);
+        } else if (msgType == PONG_MSG) {
+            System.out.println(name + " get pong msg from " + context.channel().remoteAddress());
+        } else if (msgType == CUSTOM_MSG) {
+            String msg = byteBuf.toString(CharsetUtil.UTF_8);
+            System.out.println(name + " get custom msg "+ msg +" from " + context.channel().remoteAddress());
+        }
     }
 
-    protected void handleAllIdle(ChannelHandlerContext ctx) {
-        System.err.println("---ALL_IDLE---");
-    }
+    protected abstract void getPingMsg(ChannelHandlerContext context, ByteBuf byteBuf);
 }

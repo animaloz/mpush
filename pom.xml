@@ -33,6 +33,7 @@
         <cglib.version>3.3.0</cglib.version>
         <http.clent.version>4.5.10</http.clent.version>
         <lang.version>3.9</lang.version>
+        <spring.version>5.2.2.RELEASE</spring.version>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -77,7 +78,23 @@
                 <artifactId>httpclient</artifactId>
                 <version>${http.clent.version}</version>
             </dependency>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-expression</artifactId>
+                <version>${spring.version}</version>
+            </dependency>
         </dependencies>
-
     </dependencyManagement>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>8</source>
+                    <target>8</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

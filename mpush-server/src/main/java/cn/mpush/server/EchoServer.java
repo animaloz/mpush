@@ -1,6 +1,7 @@
 package cn.mpush.server;
 
 import cn.mpush.core.handler.CustomHeartbeatHandler;
+import cn.mpush.core.handler.ServerCustomHeartbeatHandler;
 import cn.mpush.core.message.MessageDecoder;
 import cn.mpush.core.message.MessageEncoder;
 import io.netty.bootstrap.ServerBootstrap;
@@ -11,10 +12,14 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.string.StringDecoder;
+import io.netty.handler.codec.string.StringEncoder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.util.CharsetUtil;
 
 /**
  * Echoes back any received data from a client.
@@ -28,12 +33,12 @@ public final class EchoServer {
         System.out.println("EchoServer.main start");
         // Configure SSL.
         final SslContext sslCtx;
-        if (SSL) {
+//        if (SSL) {
             SelfSignedCertificate ssc = new SelfSignedCertificate();
             sslCtx = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
-        } else {
-            sslCtx = null;
-        }
+//        } else {
+//            sslCtx = null;
+//        }
 
         // Configure the server.
         /*步骤
@@ -61,13 +66,10 @@ public final class EchoServer {
                             if (sslCtx != null) {
                                 p.addLast(sslCtx.newHandler(ch.alloc()));
                             }
-                            p.addLast(new MessageDecoder());
-                            p.addLast(new MessageEncoder());
-                            //p.addLast(new LoggingHandler(LogLevel.INFO));
-                            //p.addLast("encoder", new MessageEncoder());
-                            //p.addLast("decoder", new MessageDecoder());
-                            //p.addFirst(new LineBasedFrameDecoder(65535));
-                            p.addLast(new CustomHeartbeatHandler("server"));
+                            p.addLast(new StringDecoder(CharsetUtil.UTF_8));
+                            p.addLast(new StringEncoder(CharsetUtil.UTF_8));
+                            p.addLast(new LengthFieldBasedFrameDecoder(1024, 0, 4, -4, 0));
+                            p.addLast(new ServerCustomHeartbeatHandler("server", 4));
                             p.addLast(new EchoServerHandler());
                         }
                     });

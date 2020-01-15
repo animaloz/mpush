@@ -1,22 +1,26 @@
 package cn.mpush.client;
 
 
+import cn.mpush.core.handler.ClientCustomHeartbeatHandler;
 import cn.mpush.core.handler.CustomHeartbeatHandler;
 import cn.mpush.core.message.MessageDecoder;
 import cn.mpush.core.message.MessageEncoder;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.string.StringDecoder;
+import io.netty.handler.codec.string.StringEncoder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.util.CharsetUtil;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 
 /**
  * Sends one message when a connection is open and echoes back any received
@@ -35,11 +39,11 @@ public final class EchoClient {
     	System.out.println("EchoClient.main");
         // Configure SSL.git
         final SslContext sslCtx;
-        if (SSL) {
+//        if (SSL) {
             sslCtx = SslContextBuilder.forClient().trustManager(InsecureTrustManagerFactory.INSTANCE).build();
-        } else {
-            sslCtx = null;
-        }
+//        } else {
+//            sslCtx = null;
+//        }
 
         // Configure the client.
         /*创建一个Bootstrap b实例用来配置启动客户端
@@ -61,26 +65,30 @@ public final class EchoClient {
                  public void initChannel(SocketChannel ch) throws Exception {
                      ChannelPipeline p = ch.pipeline();
                      if (sslCtx != null) {
+                         // SSL
                          p.addLast(sslCtx.newHandler(ch.alloc(), HOST, PORT));
                      }
-                     //p.addLast(new LoggingHandler(LogLevel.INFO));
-                     p.addLast(new MessageDecoder());
-                     p.addLast(new MessageEncoder());
-                     //p.addLast("encoder", new MessageEncoder());
-                  	 //p.addLast("decoder", new MessageDecoder());
-                 	 //p.addFirst(new LineBasedFrameDecoder(65535));
-                     p.addLast(new IdleStateHandler(15, 15, 15));
+                     // 每隔15s 没有write请求就自动发送ping请求
+                     p.addLast(new StringDecoder(CharsetUtil.UTF_8));
+                     p.addLast(new StringEncoder(CharsetUtil.UTF_8));
+                     p.addLast(new IdleStateHandler(0, 15, 0));
                      p.addLast(new LengthFieldBasedFrameDecoder(1024, 0, 4, -4, 0));
-                     p.addLast(new CustomHeartbeatHandler("client"));
+                     p.addLast(new ClientCustomHeartbeatHandler("client", 4));
                      p.addLast(new EchoClientHandler());
                  }
              });
             // Start the client.
-            ChannelFuture f = b.connect(HOST, PORT).sync();
             System.out.println("EchoClient.main ServerBootstrap配置启动完成");
             // Wait until the connection is closed.
-            f.channel().closeFuture().sync();
-        	System.out.println("EchoClient.end");
+            Channel channel = b.connect(HOST, PORT).sync().channel();
+            //标准输入
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
+            //利用死循环，不断读取客户端在控制台上的输入内容
+            for (;;){
+                String in = bufferedReader.readLine();
+                System.out.println(in);
+                channel.writeAndFlush(in +"\r\n");
+            }
         } finally {
             // Shut down the event loop to terminate all threads.
             group.shutdownGracefully();
