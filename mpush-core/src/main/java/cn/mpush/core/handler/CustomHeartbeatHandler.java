@@ -46,8 +46,18 @@ public abstract class CustomHeartbeatHandler extends SimpleChannelInboundHandler
         // IdleStateHandler 所产生的 IdleStateEvent 的处理逻辑.
         if (evt instanceof IdleStateEvent) {
             IdleStateEvent e = (IdleStateEvent) evt;
-            if (e.state() == IdleState.WRITER_IDLE) {
-                handleWriterIdle(ctx);
+            IdleState state = e.state();
+            switch (state) {
+                case WRITER_IDLE:
+                    handleWriterIdle(ctx);
+                    break;
+                case READER_IDLE:
+                    handleReaderIdle(ctx);
+                    break;
+                case ALL_IDLE:
+                default:
+                    break;
+
             }
         }
     }
@@ -62,9 +72,11 @@ public abstract class CustomHeartbeatHandler extends SimpleChannelInboundHandler
         System.err.println("---" + ctx.channel().remoteAddress() + " is inactive---");
     }
 
-    private void handleWriterIdle(ChannelHandlerContext ctx) {
+    protected void handleWriterIdle(ChannelHandlerContext ctx) {
         System.out.println("---AUTO_WRITER_IDLE---");
-        sendPingMsg(ctx);
+    }
+    protected void handleReaderIdle(ChannelHandlerContext ctx) {
+        System.out.println("---AUTO_READER_IDLE---");
     }
 
     @Override
@@ -76,8 +88,11 @@ public abstract class CustomHeartbeatHandler extends SimpleChannelInboundHandler
         } else if (msgType == PONG_MSG) {
             System.out.println(name + " get pong msg from " + context.channel().remoteAddress());
         } else if (msgType == CUSTOM_MSG) {
-            String msg = byteBuf.toString(CharsetUtil.UTF_8);
-            System.out.println(name + " get custom msg "+ msg +" from " + context.channel().remoteAddress());
+            byte[] data = new byte[byteBuf.readableBytes() - msgLength - 1];
+            byteBuf.skipBytes(msgLength + 1);
+            byteBuf.readBytes(data);
+            String content = new String(data);
+            System.out.println(name + " get content: " + content);
         }
     }
 

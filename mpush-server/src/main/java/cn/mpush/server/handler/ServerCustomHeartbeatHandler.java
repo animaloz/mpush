@@ -1,5 +1,6 @@
-package cn.mpush.core.handler;
+package cn.mpush.server.handler;
 
+import cn.mpush.core.handler.CustomHeartbeatHandler;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -14,5 +15,11 @@ public class ServerCustomHeartbeatHandler extends CustomHeartbeatHandler {
     @Override
     protected void getPingMsg(ChannelHandlerContext context, ByteBuf byteBuf) {
         // 心跳更新
+        context.fireChannelReadComplete();
+    }
+
+    @Override
+    protected void handleReaderIdle(ChannelHandlerContext ctx) {
+        super.handleReaderIdle(ctx);
     }
 }

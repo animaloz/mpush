@@ -1,9 +1,6 @@
 package cn.mpush.server;
 
-import cn.mpush.core.handler.CustomHeartbeatHandler;
-import cn.mpush.core.handler.ServerCustomHeartbeatHandler;
-import cn.mpush.core.message.MessageDecoder;
-import cn.mpush.core.message.MessageEncoder;
+import cn.mpush.server.handler.ServerCustomHeartbeatHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -13,13 +10,10 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import io.netty.handler.codec.string.StringDecoder;
-import io.netty.handler.codec.string.StringEncoder;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 import io.netty.handler.timeout.IdleStateHandler;
-import io.netty.util.CharsetUtil;
 
 /**
  * Echoes back any received data from a client.
@@ -32,13 +26,8 @@ public final class EchoServer {
     public static void main(String[] args) throws Exception {
         System.out.println("EchoServer.main start");
         // Configure SSL.
-        final SslContext sslCtx;
-//        if (SSL) {
-            SelfSignedCertificate ssc = new SelfSignedCertificate();
-            sslCtx = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
-//        } else {
-//            sslCtx = null;
-//        }
+        SelfSignedCertificate ssc = new SelfSignedCertificate();
+        final SslContext sslCtx = SslContextBuilder.forServer(ssc.certificate(), ssc.privateKey()).build();
 
         // Configure the server.
         /*步骤
@@ -66,11 +55,10 @@ public final class EchoServer {
                             if (sslCtx != null) {
                                 p.addLast(sslCtx.newHandler(ch.alloc()));
                             }
-                            p.addLast(new StringDecoder(CharsetUtil.UTF_8));
-                            p.addLast(new StringEncoder(CharsetUtil.UTF_8));
+                            // 每隔20s 没有read请求就清理超过3次请求时长的连接
+                            p.addLast(new IdleStateHandler(20, 0, 0));
                             p.addLast(new LengthFieldBasedFrameDecoder(1024, 0, 4, -4, 0));
                             p.addLast(new ServerCustomHeartbeatHandler("server", 4));
-                            p.addLast(new EchoServerHandler());
                         }
                     });
 
