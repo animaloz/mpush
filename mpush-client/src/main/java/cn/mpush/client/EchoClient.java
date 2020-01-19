@@ -2,16 +2,24 @@ package cn.mpush.client;
 
 
 import cn.mpush.client.handler.ClientCustomHeartbeatHandler;
+import cn.mpush.core.handler.TextWebSocketFrameHandler;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.http.DefaultHttpHeaders;
+import io.netty.handler.codec.http.HttpClientCodec;
+import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.handler.codec.http.websocketx.*;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.timeout.IdleStateHandler;
 
 import java.io.BufferedReader;
@@ -45,6 +53,7 @@ public final class EchoClient {
         EventLoopGroup group = new NioEventLoopGroup();
         try {
             Bootstrap b = new Bootstrap();
+
             b.group(group)
              .channel(NioSocketChannel.class)
              //.option(ChannelOption.TCP_NODELAY, true)
@@ -52,14 +61,27 @@ public final class EchoClient {
                  @Override
                  public void initChannel(SocketChannel ch) throws Exception {
                      ChannelPipeline p = ch.pipeline();
-                     if (sslCtx != null) {
-                         // SSL
-                         p.addLast(sslCtx.newHandler(ch.alloc(), HOST, PORT));
-                     }
+                     //websocket协议本身是基于http协议的，所以这边也要使用http解编码器
+                     p.addLast(new HttpServerCodec());
+                     //以块的方式来写的处理器
+                     p.addLast(new ChunkedWriteHandler());
+                     //netty是基于分段请求的，HttpObjectAggregator的作用是将请求分段再聚合,参数是聚合字节的最大长度
+                     p.addLast(new HttpObjectAggregator(8192));
+
+                     //ws://server:port/context_path
+                     //ws://localhost:9999/ws
+                     //参数指的是contex_path
+                     p.addLast(new WebSocketServerProtocolHandler("/ws"));
+//                     if (sslCtx != null) {
+//                         // SSL
+//                         p.addLast(sslCtx.newHandler(ch.alloc(), HOST, PORT));
+//                     }
                      // 每隔15s 没有write请求就自动发送ping请求
-                     p.addLast(new IdleStateHandler(0, 15, 0));
-                     p.addLast(new LengthFieldBasedFrameDecoder(1024, 0, 4, -4, 0));
-                     p.addLast(new ClientCustomHeartbeatHandler("client", 4));
+//                     p.addLast(new IdleStateHandler(0, 15, 0));
+//                     p.addLast(new LengthFieldBasedFrameDecoder(1024, 0, 4, -4, 0));
+//                     p.addLast(new ClientCustomHeartbeatHandler("client", 4));
+                     p.addLast(new TextWebSocketFrameHandler("client"));
+                     p.addLast(new HttpClientCodec(), new HttpObjectAggregator(8192), handler);
                  }
              });
             // Start the client.
@@ -71,12 +93,23 @@ public final class EchoClient {
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
             //利用死循环，不断读取客户端在控制台上的输入内容
             for (;;){
-                String in = bufferedReader.readLine();
-                ByteBuf buf = channel.alloc().buffer(16);
-                buf.writeInt(5 + in.getBytes().length);
-                buf.writeByte(3);
-                buf.writeBytes(in.getBytes());
-                channel.writeAndFlush(buf);
+                String msg = bufferedReader.readLine();
+                if ("bye".equals(msg.toLowerCase())) {
+                    channel.writeAndFlush(new CloseWebSocketFrame());
+                    channel.closeFuture().sync();
+                    break;
+                } else if ("ping".equals(msg.toLowerCase())) {
+                    WebSocketFrame frame = new PingWebSocketFrame(Unpooled.wrappedBuffer(new byte[] { 8, 1, 8, 1 }));
+                    channel.writeAndFlush(frame);
+                } else {
+                    WebSocketFrame frame = new TextWebSocketFrame(msg);
+                    channel.writeAndFlush(frame);
+                }
+//                ByteBuf buf = channel.alloc().buffer(16);
+//                buf.writeInt(5 + in.getBytes().length);
+//                buf.writeByte(3);
+//                buf.writeBytes(in.getBytes());
+//                channel.writeAndFlush(buf);
             }
         } finally {
             // Shut down the event loop to terminate all threads.
