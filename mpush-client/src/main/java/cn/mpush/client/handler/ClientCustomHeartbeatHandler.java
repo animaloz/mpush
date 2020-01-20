@@ -6,8 +6,8 @@ import io.netty.channel.ChannelHandlerContext;
 
 public class ClientCustomHeartbeatHandler extends CustomHeartbeatHandler {
 
-    public ClientCustomHeartbeatHandler(String name, int msgLength) {
-        super(name, msgLength);
+    public ClientCustomHeartbeatHandler(String name) {
+        super(name);
     }
 
     @Override

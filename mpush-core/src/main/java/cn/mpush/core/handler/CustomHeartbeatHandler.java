@@ -1,42 +1,33 @@
 package cn.mpush.core.handler;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
-import io.netty.util.CharsetUtil;
 
-import java.nio.charset.Charset;
-
-public abstract class CustomHeartbeatHandler extends SimpleChannelInboundHandler<ByteBuf> {
-    protected static final byte PING_MSG = 1;
-    protected static final byte PONG_MSG = 2;
-    protected static final byte CUSTOM_MSG = 3;
-    protected String name;
-    protected int msgLength;
+public abstract class CustomHeartbeatHandler extends SimpleChannelInboundHandler<Object> {
+    private String name;
     private int heartbeatCount = 0;
 
-    public CustomHeartbeatHandler(String name, int msgLength) {
+    public CustomHeartbeatHandler(String name) {
         this.name = name;
-        this.msgLength = msgLength;
     }
 
     protected void sendPingMsg(ChannelHandlerContext context) {
-        ByteBuf buf = context.alloc().buffer(5);
-        buf.writeInt(5);
-        buf.writeByte(PING_MSG);
-        buf.retain();
-        context.writeAndFlush(buf);
+        WebSocketFrame frame = new PingWebSocketFrame(Unpooled.wrappedBuffer(new byte[]{8, 1, 8, 1}));
+        context.channel().writeAndFlush(frame);
         heartbeatCount++;
         System.out.println(name + " sent ping msg to " + context.channel().remoteAddress() + ", count: " + heartbeatCount);
     }
 
     protected void sendPongMsg(ChannelHandlerContext context) {
-        ByteBuf buf = context.alloc().buffer(5);
-        buf.writeInt(5);
-        buf.writeByte(PONG_MSG);
-        context.channel().writeAndFlush(buf);
+        WebSocketFrame frame = new PongWebSocketFrame(Unpooled.wrappedBuffer(new byte[]{8, 1, 8, 1}));
+        context.channel().writeAndFlush(frame);
         heartbeatCount++;
         System.out.println(name + " sent pong msg to " + context.channel().remoteAddress() + ", count: " + heartbeatCount);
     }
@@ -44,6 +35,7 @@ public abstract class CustomHeartbeatHandler extends SimpleChannelInboundHandler
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
         // IdleStateHandler 所产生的 IdleStateEvent 的处理逻辑.
+        System.out.println("******************************************");
         if (evt instanceof IdleStateEvent) {
             IdleStateEvent e = (IdleStateEvent) evt;
             IdleState state = e.state();
@@ -57,7 +49,6 @@ public abstract class CustomHeartbeatHandler extends SimpleChannelInboundHandler
                 case ALL_IDLE:
                 default:
                     break;
-
             }
         }
     }
@@ -74,25 +65,21 @@ public abstract class CustomHeartbeatHandler extends SimpleChannelInboundHandler
 
     protected void handleWriterIdle(ChannelHandlerContext ctx) {
         System.out.println("---AUTO_WRITER_IDLE---");
+        sendPingMsg(ctx);
     }
+
     protected void handleReaderIdle(ChannelHandlerContext ctx) {
         System.out.println("---AUTO_READER_IDLE---");
+        sendPingMsg(ctx);
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext context, ByteBuf byteBuf) throws Exception {
-        byte msgType = byteBuf.getByte(msgLength);
-        if (msgType == PING_MSG) {
+    protected void channelRead0(ChannelHandlerContext context, Object o) throws Exception {
+        if (o instanceof PingWebSocketFrame) {
 //            不发送消息，进行ping pong成功时间更新
-            getPingMsg(context, byteBuf);
-        } else if (msgType == PONG_MSG) {
+            sendPongMsg(context);
+        } else if (o instanceof  PongWebSocketFrame) {
             System.out.println(name + " get pong msg from " + context.channel().remoteAddress());
-        } else if (msgType == CUSTOM_MSG) {
-            byte[] data = new byte[byteBuf.readableBytes() - msgLength - 1];
-            byteBuf.skipBytes(msgLength + 1);
-            byteBuf.readBytes(data);
-            String content = new String(data);
-            System.out.println(name + " get content: " + content);
         }
     }
 

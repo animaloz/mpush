@@ -17,13 +17,13 @@ public class TextWebSocketFrameHandler extends SimpleChannelInboundHandler<TextW
     //读到客户端的内容并且向客户端去写内容
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, TextWebSocketFrame msg) throws Exception {
-        System.out.println(name + "收到消息：" + msg.text());
+        System.out.println(name + "收到消息：" + msg.text() + "[最右][泪流满面]");
 
         /**
          * writeAndFlush接收的参数类型是Object类型，但是一般我们都是要传入管道中传输数据的类型，比如我们当前的demo
          * 传输的就是TextWebSocketFrame类型的数据
          */
-        ctx.channel().writeAndFlush(new TextWebSocketFrame(name + "服务时间：" + LocalDateTime.now()));
+        ctx.channel().writeAndFlush(new TextWebSocketFrame(name + "服务时间：" + LocalDateTime.now()+ "[最右][泪流满面]"));
     }
 
     //每个channel都有一个唯一的id值
