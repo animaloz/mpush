@@ -1,11 +1,8 @@
 package cn.mpush.server;
 
-import cn.mpush.core.handler.TextWebSocketFrameHandler;
+import cn.mpush.core.handler.WebSocketFrameHandler;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -44,7 +41,8 @@ public final class WebSocketServer {
             ServerBootstrap b = new ServerBootstrap();
             b.group(bossGroup, workerGroup)
                     .channel(NioServerSocketChannel.class)
-                    //.option(ChannelOption.SO_BACKLOG, 100)
+                    .option(ChannelOption.SO_BACKLOG, 100)
+//                    .option(ChannelOption.SO_KEEPALIVE, Boolean.TRUE)
                     //.handler(new LoggingHandler(LogLevel.INFO))
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
@@ -57,11 +55,9 @@ public final class WebSocketServer {
                             //netty是基于分段请求的，HttpObjectAggregator的作用是将请求分段再聚合,参数是聚合字节的最大长度
                             p.addLast(new HttpObjectAggregator(8192));
                             //ws://server:port/context_path
-                            p.addLast(new WebSocketServerProtocolHandler("/ws"));
-                            // 每隔20s 没有read请求就清理超过3次请求时长的连接
-//                            p.addLast(new IdleStateHandler(20, 0, 0));
                             //websocket定义了传递数据的6中frame类型
-                            p.addLast(new TextWebSocketFrameHandler("server"));
+                            p.addLast(new WebSocketServerProtocolHandler("/wsServer"));
+                            p.addLast(new WebSocketFrameHandler("server"));
                         }
                     });
 

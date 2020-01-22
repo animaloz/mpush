@@ -5,12 +5,13 @@ import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.websocketx.*;
 import io.netty.util.CharsetUtil;
 
+@ChannelHandler.Sharable
 public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> {
 
     private final WebSocketClientHandshaker handshaker;
     private ChannelPromise handshakeFuture;
-    
-    
+
+
     public WebSocketClientHandler(WebSocketClientHandshaker handshaker) {
         this.handshaker = handshaker;
     }
@@ -26,15 +27,16 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
     }
 
     @Override
-    public void channelActive(ChannelHandlerContext ctx) {
+    public void channelActive(ChannelHandlerContext ctx) throws Exception {
         System.out.println("channelActive");
         handshaker.handshake(ctx.channel());
+        super.channelActive(ctx);
     }
 
     @Override
-    public void channelInactive(ChannelHandlerContext ctx) {
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         System.out.println("WebSocket Client 链接失败!");
-
+        super.channelInactive(ctx);
     }
 
     @Override
@@ -56,7 +58,7 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
         if (msg instanceof FullHttpResponse) {
             FullHttpResponse response = (FullHttpResponse) msg;
             throw new IllegalStateException("Unexpected FullHttpResponse (getStatus=" + response.status()
-                    + ", content=" + response.content().toString(CharsetUtil.UTF_8) + ')');
+                   + ", content=" + response.content().toString(CharsetUtil.UTF_8) + ')');
         }
         if (msg instanceof TextWebSocketFrame) {
             TextWebSocketFrame textFrame = (TextWebSocketFrame) msg;
@@ -77,6 +79,7 @@ public class WebSocketClientHandler extends SimpleChannelInboundHandler<Object> 
             handshakeFuture.setFailure(cause);
         }
         ctx.close();
+        ctx.fireExceptionCaught(cause);
     }
 
 }
