@@ -31,7 +31,7 @@
         <commons4.version>4.4</commons4.version>
         <commons3.version>3.9</commons3.version>
         <cglib.version>3.3.0</cglib.version>
-        <http.clent.version>4.5.10</http.clent.version>
+        <http.clent.version>4.5.13</http.clent.version>
         <lang.version>3.9</lang.version>
         <spring.version>5.2.2.RELEASE</spring.version>
     </properties>
