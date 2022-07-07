@@ -33,7 +33,7 @@
         <cglib.version>3.3.0</cglib.version>
         <http.clent.version>4.5.10</http.clent.version>
         <lang.version>3.9</lang.version>
-        <spring.version>5.2.2.RELEASE</spring.version>
+        <spring.version>5.2.21.RELEASE</spring.version>
     </properties>
     <dependencyManagement>
         <dependencies>
